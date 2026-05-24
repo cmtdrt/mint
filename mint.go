@@ -67,3 +67,39 @@ func (m *Mint) IsZero() bool {
 func (m *Mint) IsNotZero() bool {
 	return m.Amount.Sign() != 0
 }
+
+type FormattedMint struct {
+	Amount   string
+	Currency Currency
+}
+
+// Format the Mint into a formatted string with the currency
+// Example : Mint(1099, EUR, 2) --> FormattedMint{Amount: "10.99", Currency: EUR}
+func (m *Mint) Format() FormattedMint {
+	raw := m.Amount.String() // ex: "14832" ou "-14832"
+
+	if m.Scale == 0 {
+		return FormattedMint{Amount: raw, Currency: m.Currency}
+	}
+
+	// Handle negative: strip the minus, reinsert it after
+	negative := m.Amount.Sign() < 0
+	digits := raw
+	if negative {
+		digits = raw[1:]
+	}
+
+	// Pad with leading zeros if digits are fewer than scale
+	// ex: scale=4, digits="3" --> "00003"
+	for len(digits) <= m.Scale {
+		digits = "0" + digits
+	}
+
+	dotPos := len(digits) - m.Scale
+	formatted := digits[:dotPos] + "." + digits[dotPos:]
+	if negative {
+		formatted = "-" + formatted
+	}
+
+	return FormattedMint{Amount: formatted, Currency: m.Currency}
+}
