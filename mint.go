@@ -105,3 +105,4 @@ func (m *Mint) Format() FormattedMint {
 }
 
 // TODO : handle NewFromStr case with 0.X --> should be Bigint of 1 and scale 1 ?
+// FIXME: how will we handle calculations then ?
