@@ -103,3 +103,5 @@ func (m *Mint) Format() FormattedMint {
 
 	return FormattedMint{Amount: formatted, Currency: m.Currency}
 }
+
+// TODO : handle NewFromStr case with 0.X --> should be Bigint of 1 and scale 1 ?
