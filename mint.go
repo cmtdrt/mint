@@ -74,9 +74,9 @@ type FormattedMint struct {
 }
 
 // Format the Mint into a formatted string with the currency
-// Example : Mint(1099, EUR, 2) --> FormattedMint{Amount: "10.99", Currency: EUR}
+// Example : Mint(Amount:1099, Currency:EUR, Scale:2) --> FormattedMint{Amount: "10.99", Currency: EUR}
 func (m *Mint) Format() FormattedMint {
-	raw := m.Amount.String() // ex: "14832" ou "-14832"
+	raw := m.Amount.String()
 
 	if m.Scale == 0 {
 		return FormattedMint{Amount: raw, Currency: m.Currency}
