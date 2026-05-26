@@ -3,69 +3,140 @@ package mint
 import (
 	"fmt"
 	"math/big"
-	"regexp"
 	"strings"
 )
 
+// Mint is an immutable monetary amount (scaled integer, no floats).
 type Mint struct {
 	Amount   *big.Int
 	Currency Currency
 	Scale    int
 }
 
-func New(amount *big.Int, currency Currency, scale int) *Mint {
-	return &Mint{
-		Amount:   amount,
-		Currency: currency,
-		Scale:    scale,
+// New builds a Mint from a scaled integer (copies amount).
+func New(amount *big.Int, currency Currency, scale int) Mint {
+	amt := new(big.Int)
+	if amount != nil {
+		amt.Set(amount)
 	}
+	return Mint{Amount: amt, Currency: currency, Scale: scale}
 }
 
-func NewFromStr(amount string, currency Currency) (*Mint, error) {
-	// Allowed: optional minus sign, followed by digits and 0 or 1 dot
-	re := regexp.MustCompile(`^-?\d+(\.\d+)?$`)
-	if !re.MatchString(amount) {
-		return nil, fmt.Errorf("invalid amount: %q", amount)
+// NewFromStr builds a Mint from a decimal string and a currency.
+func NewFromStr(input string, currency Currency) (Mint, error) {
+	input = strings.TrimSpace(input)
+	if input == "" {
+		return Mint{}, ErrInvalidAmount
 	}
 
-	// Normalize: remove trailing zeros after the dot, and a potential lone dot after
-	if strings.Contains(amount, ".") {
-		amount = strings.TrimRight(amount, "0")
-		amount = strings.TrimRight(amount, ".")
+	negative := false
+	if strings.HasPrefix(input, "-") {
+		negative = true
+		input = input[1:]
+		if input == "" {
+			return Mint{}, ErrInvalidAmount
+		}
 	}
 
-	// If there is no dot, create a bigInt with the amount and set scale to 0
-	dotIdx := strings.Index(amount, ".")
-	if dotIdx == -1 {
-		n := new(big.Int)
-		n.SetString(amount, 10)
-		return New(n, currency, 0), nil
+	parts := strings.Split(input, ".")
+	if len(parts) > 2 {
+		return Mint{}, ErrInvalidAmount
 	}
 
-	// Since there is a dot, the scale is the length of the string after the dot
-	// and the amount will be a bigInt of amount without the dot
-	// example : "148.32" --> BigInt("14832") and scale 2
-	scale := len(amount) - dotIdx - 1
-	ammountWithoutDot := strings.Replace(amount, ".", "", 1)
-	amountBigInt := new(big.Int)
-	amountBigInt.SetString(ammountWithoutDot, 10)
-	return New(amountBigInt, currency, scale), nil
+	intPart := parts[0]
+	var decPart string
+	scale := 0
+
+	if len(parts) == 2 {
+		decPart = parts[1]
+		scale = len(decPart)
+		for _, r := range decPart {
+			if r < '0' || r > '9' {
+				return Mint{}, ErrInvalidAmount
+			}
+		}
+	}
+
+	if intPart == "" {
+		return Mint{}, ErrInvalidAmount
+	}
+
+	for _, r := range intPart {
+		if r < '0' || r > '9' {
+			return Mint{}, ErrInvalidAmount
+		}
+	}
+
+	intPart = trimLeadingZeros(intPart)
+	combined := intPart + decPart
+	if combined == "" {
+		combined = "0"
+	}
+
+	amount := new(big.Int)
+	if _, ok := amount.SetString(combined, 10); !ok {
+		return Mint{}, ErrInvalidAmount
+	}
+	if negative {
+		amount.Neg(amount)
+	}
+
+	return Mint{Amount: amount, Currency: currency, Scale: scale}, nil
 }
 
-func (m *Mint) IsNegative() bool {
+func trimLeadingZeros(s string) string {
+	if s == "" || s == "0" {
+		return "0"
+	}
+	i := 0
+	for i < len(s)-1 && s[i] == '0' {
+		i++
+	}
+	return s[i:]
+}
+
+func (m Mint) IsNegative() bool {
 	return m.Amount.Sign() < 0
 }
 
-func (m *Mint) IsPositive() bool {
+func (m Mint) IsPositive() bool {
 	return m.Amount.Sign() > 0
 }
 
-func (m *Mint) IsZero() bool {
+func (m Mint) IsZero() bool {
 	return m.Amount.Sign() == 0
 }
 
-func (m *Mint) IsNotZero() bool {
+func (m Mint) IsNotZero() bool {
 	return m.Amount.Sign() != 0
+}
+
+// Equal compares two amounts (currency and value at the same scale).
+func (m Mint) Equal(other Mint) bool {
+	if m.Currency != other.Currency {
+		return false
+	}
+	a, b, _ := alignScales(m, other)
+	return a.Cmp(b) == 0
+}
+
+// String returns the amount part of Format() (no currency).
+func (m Mint) String() string {
+	return m.Format().Amount
+}
+
+// Validate checks internal integrity of the amount.
+func (m Mint) Validate() error {
+	if m.Amount == nil {
+		return fmt.Errorf("mint: nil amount")
+	}
+	if m.Scale < 0 {
+		return fmt.Errorf("mint: negative scale")
+	}
+	if !m.Currency.isValid() {
+		return fmt.Errorf("mint: invalid currency")
+	}
+	return nil
 }
 
 type FormattedMint struct {
@@ -75,7 +146,7 @@ type FormattedMint struct {
 
 // Format the Mint into a formatted string with the currency
 // Example : Mint(Amount:1099, Currency:EUR, Scale:2) --> FormattedMint{Amount: "10.99", Currency: EUR}
-func (m *Mint) Format() FormattedMint {
+func (m Mint) Format() FormattedMint {
 	raw := m.Amount.String()
 
 	if m.Scale == 0 {
@@ -104,5 +175,30 @@ func (m *Mint) Format() FormattedMint {
 	return FormattedMint{Amount: formatted, Currency: m.Currency}
 }
 
-// TODO : handle NewFromStr case with 0.X --> should be Bigint of 1 and scale 1 ?
-// FIXME: how will we handle calculations then ?
+func (m Mint) checkCurrency(other Mint) error {
+	if m.Currency != other.Currency {
+		return ErrCurrencyMismatch
+	}
+	return nil
+}
+
+func alignScales(a, b Mint) (*big.Int, *big.Int, int) {
+	if a.Scale == b.Scale {
+		return new(big.Int).Set(a.Amount), new(big.Int).Set(b.Amount), a.Scale
+	}
+	if a.Scale > b.Scale {
+		factor := pow10(a.Scale - b.Scale)
+		bv := new(big.Int).Mul(b.Amount, factor)
+		return new(big.Int).Set(a.Amount), bv, a.Scale
+	}
+	factor := pow10(b.Scale - a.Scale)
+	av := new(big.Int).Mul(a.Amount, factor)
+	return av, new(big.Int).Set(b.Amount), b.Scale
+}
+
+func pow10(n int) *big.Int {
+	if n == 0 {
+		return big.NewInt(1)
+	}
+	return new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(n)), nil)
+}
