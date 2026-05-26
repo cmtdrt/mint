@@ -7,32 +7,38 @@ import (
 
 type Currency uint16
 
-// Available currencies
+// Available currencies (layer 1).
 const (
-	USD Currency = iota // US Dollar
-	EUR                 // Euro
+	EUR Currency = iota
+	USD
 )
 
-// Convert a string to a Currency
+// FromString parses a string into a Currency (external use only).
 func FromString(s string) (Currency, error) {
-	s = strings.ToUpper(s)
+	s = strings.ToUpper(strings.TrimSpace(s))
 	switch s {
-	case "USD":
-		return USD, nil
 	case "EUR":
 		return EUR, nil
+	case "USD":
+		return USD, nil
 	default:
-		return 0, errors.New("invalid currency : " + s)
+		return 0, errors.New("invalid currency: " + s)
 	}
 }
 
-// Convert a Currency to a string
+// String returns the ISO currency code.
 func (c Currency) String() string {
 	switch c {
-	case USD:
-		return "USD"
 	case EUR:
 		return "EUR"
+	case USD:
+		return "USD"
+	default:
+		return ""
 	}
-	return ""
+}
+
+// isValid reports whether the currency is in the layer 1 enum.
+func (c Currency) isValid() bool {
+	return c == EUR || c == USD
 }
