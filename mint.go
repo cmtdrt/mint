@@ -95,6 +95,77 @@ func trimLeadingZeros(s string) string {
 	return s[i:]
 }
 
+// Add adds two amounts of the same currency (scale alignment, no rounding).
+func (m Mint) Add(other Mint) (Mint, error) {
+	if err := m.checkCurrency(other); err != nil {
+		return Mint{}, err
+	}
+	a, b, scale := alignScales(m, other)
+	sum := new(big.Int).Add(a, b)
+	return Mint{Amount: sum, Currency: m.Currency, Scale: scale}, nil
+}
+
+// Sub subtracts other from m (same currency, scale alignment, no rounding).
+func (m Mint) Sub(other Mint) (Mint, error) {
+	if err := m.checkCurrency(other); err != nil {
+		return Mint{}, err
+	}
+	a, b, scale := alignScales(m, other)
+	diff := new(big.Int).Sub(a, b)
+	return Mint{Amount: diff, Currency: m.Currency, Scale: scale}, nil
+}
+
+// Mul multiplies the amount by an integer; scale is preserved.
+func (m Mint) Mul(n int64) Mint {
+	factor := big.NewInt(n)
+	amount := new(big.Int).Mul(m.Amount, factor)
+	return Mint{Amount: amount, Currency: m.Currency, Scale: m.Scale}
+}
+
+// Div divides the amount by an integer without silent rounding.
+// Scale may increase for an exact result; otherwise an error is returned after a limit.
+// TODO : add an explicit rounding mode + limit for the number of digits after the decimal point
+func (m Mint) Div(n int64) (Mint, error) {
+	if n == 0 {
+		return Mint{}, ErrDivisionByZero
+	}
+
+	negResult := (m.Amount.Sign() < 0) != (n < 0)
+	v := new(big.Int).Abs(m.Amount)
+	dAbs := new(big.Int).SetInt64(n)
+	dAbs.Abs(dAbs)
+
+	quotient := new(big.Int).Quo(v, dAbs)
+	remainder := new(big.Int).Rem(v, dAbs)
+	scale := m.Scale
+
+	if remainder.Sign() == 0 {
+		if negResult {
+			quotient.Neg(quotient)
+		}
+		return Mint{Amount: quotient, Currency: m.Currency, Scale: scale}, nil
+	}
+
+	const maxExtraDigits = 38
+	ten := big.NewInt(10)
+	for range maxExtraDigits {
+		remainder.Mul(remainder, ten)
+		digit := new(big.Int).Quo(remainder, dAbs)
+		remainder.Rem(remainder, dAbs)
+		quotient.Mul(quotient, ten)
+		quotient.Add(quotient, digit)
+		scale++
+		if remainder.Sign() == 0 {
+			if negResult {
+				quotient.Neg(quotient)
+			}
+			return Mint{Amount: quotient, Currency: m.Currency, Scale: scale}, nil
+		}
+	}
+
+	return Mint{}, fmt.Errorf("mint: non-terminating division")
+}
+
 func (m Mint) IsNegative() bool {
 	return m.Amount.Sign() < 0
 }
@@ -139,6 +210,7 @@ func (m Mint) Validate() error {
 	return nil
 }
 
+// FormattedMint is a formatted string with the currency, usefull for display purposes
 type FormattedMint struct {
 	Amount   string
 	Currency Currency
