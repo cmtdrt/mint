@@ -7,7 +7,7 @@ import (
 
 type Currency uint16
 
-// Available currencies (layer 1).
+// Available currencies
 const (
 	EUR Currency = iota
 	USD
@@ -38,7 +38,17 @@ func (c Currency) String() string {
 	}
 }
 
-// isValid reports whether the currency is in the layer 1 enum.
+// isValid reports whether the currency is in the enum.
 func (c Currency) isValid() bool {
 	return c == EUR || c == USD
+}
+
+// DecimalPlaces returns the standard number of fraction digits for a currency
+func (c Currency) DecimalPlaces() (int, bool) {
+	switch c {
+	case EUR, USD:
+		return 2, true
+	default:
+		return 0, false
+	}
 }
