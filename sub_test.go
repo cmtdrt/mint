@@ -1,4 +1,4 @@
-package test
+package mint_test
 
 import (
 	"errors"
