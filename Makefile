@@ -16,5 +16,3 @@ vet:
 
 test:
 	go test -race -v ./...
-
-ci: fmtcheck vet test
