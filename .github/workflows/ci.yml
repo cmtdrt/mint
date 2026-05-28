@@ -22,12 +22,12 @@ jobs:
           check-latest: true
           cache: true
 
-      - name: gofmt (check)
+      - name: format
         run: make fmtcheck
 
-      - name: go vet
+      - name: vet
         run: make vet
 
-      - name: Tests
+      - name: test
         run: make test
 
