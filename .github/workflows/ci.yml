@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   test:
-    name: Unit tests
+    name: Format, Vet, Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
