@@ -4,7 +4,7 @@
 
 ### Why no floating numbers?
 
-- Floats cannot represent many decimal values exactly (e.g. 0.1), which can produce surprising results.
+- Floats cannot represent many decimal values exactly (ex: 0.1), which can produce surprising results.
 - Money needs **deterministic, auditable** behavior.
 - `mint` uses scaled integers (`big.Int`) to keep computations predictable.
 
