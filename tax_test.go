@@ -34,4 +34,3 @@ func TestTaxInclusiveNonTerminating(t *testing.T) {
 		t.Errorf("err = %v, want ErrNonTerminatingResult", err)
 	}
 }
-

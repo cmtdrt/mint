@@ -29,4 +29,3 @@ func (m Mint) DiscountAmount(amount Mint) (Mint, error) {
 	}
 	return m.Sub(amount)
 }
-

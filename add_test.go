@@ -9,9 +9,9 @@ import (
 
 func TestAdd(t *testing.T) {
 	cases := []struct {
-		name   string
-		a, b   string
-		want   string
+		name    string
+		a, b    string
+		want    string
 		wantErr bool
 	}{
 		{"same scale", "1.00", "2.00", "3.00", false},

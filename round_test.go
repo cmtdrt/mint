@@ -72,7 +72,7 @@ func TestRoundHalfEven(t *testing.T) {
 
 func TestRoundFloorCeil(t *testing.T) {
 	cases := []struct {
-		in       string
+		in        string
 		wantFloor string
 		wantCeil  string
 	}{
