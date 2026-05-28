@@ -1,6 +1,6 @@
 ## Mint
 
-`mint` is a ![Go](https://img.shields.io/badge/-%2300ADD8.svg?logo=go&logoColor=white) library to work with monetary amounts **without ever using floating point numbers** (`float32/float64`).
+`mint` is a ![Go](https://img.shields.io/badge/-%2300ADD8.svg?logo=go&logoColor=white) library to work with monetary amounts **without ever using floating point numbers**.
 
 ### Why no floating numbers?
 
