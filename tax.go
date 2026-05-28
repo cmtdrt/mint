@@ -92,4 +92,3 @@ func divAmountByRate(amount *big.Int, amountScale int, den rate) (*big.Int, int,
 
 	return nil, 0, fmt.Errorf("mint: %w", ErrNonTerminatingResult)
 }
-

@@ -49,4 +49,3 @@ func TestDiscountPercentOverOneRejected(t *testing.T) {
 		t.Errorf("err = %v, want ErrInvalidOperation", err)
 	}
 }
-

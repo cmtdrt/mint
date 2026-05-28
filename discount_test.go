@@ -25,4 +25,3 @@ func TestDiscountAmountCurrencyMismatch(t *testing.T) {
 		t.Errorf("err = %v, want ErrCurrencyMismatch", err)
 	}
 }
-
