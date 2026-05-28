@@ -45,5 +45,5 @@ func (m Mint) Div(n int64) (Mint, error) {
 		}
 	}
 
-	return Mint{}, fmt.Errorf("mint: non-terminating division")
+	return Mint{}, fmt.Errorf("mint: %w", ErrNonTerminatingResult)
 }
